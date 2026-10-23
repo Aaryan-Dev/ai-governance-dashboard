@@ -3,7 +3,10 @@ import { dayOfMonth, daysInMonth, monthKey, monthLabel, prevMonthKey } from "../
 import { getStore } from "../store";
 import { getToolRows, isApproved } from "./tools.service";
 
-export function getTrend(filters: Filters, months = 6): TrendPoint[] {
+/** Trend span follows the selected window: current month plus enough prior months to cover it (min 3 points). */
+export const trendMonths = (periodDays: number) => Math.min(6, Math.max(3, Math.ceil(periodDays / 30) + 1));
+
+export function getTrend(filters: Filters, months = trendMonths(Number(filters.period))): TrendPoint[] {
   const { dataset } = getStore();
   const tools = new Map(getToolRows(filters).map((t) => [t.id, t]));
   const cur = monthKey(dataset.asOf);

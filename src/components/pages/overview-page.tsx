@@ -28,8 +28,10 @@ export function OverviewPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">AI usage &amp; spend</h1>
-          <p className="mt-0.5 text-sm text-ink-2">
-            {overview.data ? `As of ${formatAsOf(overview.data.asOf)} · day ${overview.data.daysElapsed} of ${overview.data.daysInMonth}` : "Loading…"}
+          <p className="text-ink-2 mt-0.5 text-sm">
+            {overview.data
+              ? `As of ${formatAsOf(overview.data.asOf)} · day ${overview.data.daysElapsed} of ${overview.data.daysInMonth}`
+              : "Loading…"}
           </p>
         </div>
         <FilterBar />

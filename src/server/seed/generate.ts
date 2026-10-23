@@ -50,8 +50,9 @@ export function generateDataset(seed = 20260101): Dataset {
         if (rng() > p) continue;
         const offset = Math.floor(Math.pow(rng(), tool.recency) * (ADOPTION_LOOKBACK_DAYS - 2));
         const startDate = addDays(asOf, -offset);
-        const churned = rng() < 0.12;
-        const lastActive = churned ? addDays(asOf, -Math.min(offset, 30 + Math.floor(rng() * 90))) : asOf;
+        // ~30% of adopters lapse (trial, then abandon) at a random point, so wider windows count more users.
+        const lapsed = rng() < 0.3;
+        const lastActive = lapsed ? addDays(asOf, -Math.min(offset, 1 + Math.floor(rng() * 150))) : asOf;
         adoptions.push({ userId, deptId: dept.id, toolId: tool.id, startDate, lastActive });
       }
     }

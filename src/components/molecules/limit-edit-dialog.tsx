@@ -28,7 +28,7 @@ function LimitForm({ tool, onClose }: { tool: ToolRow; onClose: () => void }) {
   const parsed = Number(value);
   const valid = Number.isInteger(parsed) && parsed >= 0;
 
-  const save = (limit: number | null) => mutate({ id: tool.id, limit }, { onSuccess: onClose });
+  const save = (limit: number | null) => mutate({ id: tool.id, name: tool.name, limit }, { onSuccess: onClose });
 
   return (
     <DialogContent
@@ -43,18 +43,32 @@ function LimitForm({ tool, onClose }: { tool: ToolRow; onClose: () => void }) {
         }}
       >
         <div>
-          <label htmlFor="limit" className="text-xs font-medium text-ink-2">Approved monthly limit (USD)</label>
+          <label htmlFor="limit" className="text-ink-2 text-xs font-medium">
+            Approved monthly limit (USD)
+          </label>
           <Input id="limit" inputMode="numeric" value={value} onChange={(e) => setValue(e.target.value)} className="mt-1" autoFocus />
-          <button type="button" onClick={() => setValue(String(suggested))} className="mt-1.5 text-xs text-series-1 hover:underline cursor-pointer">
+          <button
+            type="button"
+            onClick={() => setValue(String(suggested))}
+            className="text-series-1 mt-1.5 cursor-pointer text-xs hover:underline"
+          >
             Suggest {formatUsd(suggested)} (forecast + 10%)
           </button>
         </div>
-        {error && <p role="alert" className="text-xs text-critical-text">{error.message}</p>}
+        {error && (
+          <p role="alert" className="text-critical-text text-xs">
+            {error.message}
+          </p>
+        )}
         <div className="flex justify-between gap-2">
-          <Button variant="ghost" disabled={isPending || tool.limit === null} onClick={() => save(null)}>Remove limit</Button>
+          <Button variant="ghost" disabled={isPending || tool.limit === null} onClick={() => save(null)}>
+            Remove limit
+          </Button>
           <div className="flex gap-2">
             <Button onClick={onClose}>Cancel</Button>
-            <Button type="submit" variant="primary" disabled={!valid || isPending}>{isPending ? "Saving…" : "Save limit"}</Button>
+            <Button type="submit" variant="primary" disabled={!valid || isPending}>
+              {isPending ? "Saving…" : "Save limit"}
+            </Button>
           </div>
         </div>
       </form>

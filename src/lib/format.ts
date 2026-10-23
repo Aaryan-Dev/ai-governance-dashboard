@@ -16,7 +16,7 @@ export function formatSigned(n: number, digits = 0) {
 }
 
 export function formatRelative(iso: string, now = Date.now()) {
-  const mins = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60_000));
+  const mins = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins} min ago`;
   const hours = Math.round(mins / 60);

@@ -14,15 +14,23 @@ import { useMemo, useState } from "react";
 import { ProgressMeter } from "@/components/atoms/progress-meter";
 import { SanctionBadge } from "@/components/atoms/sanction-badge";
 import { StatusBadge } from "@/components/atoms/status-badge";
+import { RowActions } from "@/components/molecules/row-actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFilters } from "@/hooks/use-filters";
 import { useUpdateSanction } from "@/hooks/use-tool-mutations";
 import { formatPct, formatUsd } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { ToolRow } from "@/schemas";
 
 const col = createColumnHelper<ToolRow>();
+
+interface ColMeta {
+  numeric?: boolean;
+  className?: string;
+}
 
 interface Props {
   rows?: ToolRow[];
@@ -35,23 +43,35 @@ export function ToolsTable({ rows = [], loading, error, onEdit }: Props) {
   const [sorting, setSorting] = useState<SortingState>([{ id: "spendMtd", desc: true }]);
   const [search, setSearch] = useState("");
   const { mutate: setSanction, isPending, variables } = useUpdateSanction();
+  const { filters } = useFilters();
 
   const columns = useMemo(
     () => [
       col.accessor("name", {
         header: "Tool",
         cell: (c) => (
-          <div>
+          <div className="min-w-[11rem] whitespace-nowrap">
             <p className="font-medium">{c.getValue()}</p>
-            <p className="text-xs text-ink-2">{c.row.original.vendor} · {c.row.original.category}</p>
+            <p className="text-ink-2 text-xs">
+              {c.row.original.vendor} · {c.row.original.category}
+            </p>
           </div>
         ),
       }),
       col.accessor("sanction", { header: "Approval", cell: (c) => <SanctionBadge sanction={c.getValue()} /> }),
       col.accessor("activeUsers", { header: "Users", meta: { numeric: true }, cell: (c) => c.getValue().toLocaleString() }),
-      col.accessor("topDepartment", { header: "Top dept." }),
+      col.accessor("topDepartment", { header: "Top dept.", meta: { className: "hidden 2xl:table-cell" } }),
+      col.accessor("spendWindow", {
+        header: `Spend, ${filters.period}d`,
+        meta: { numeric: true, className: "hidden xl:table-cell" },
+        cell: (c) => formatUsd(c.getValue()),
+      }),
       col.accessor("spendMtd", { header: "Spend MTD", meta: { numeric: true }, cell: (c) => formatUsd(c.getValue()) }),
-      col.accessor("projected", { header: "Forecast", meta: { numeric: true }, cell: (c) => formatUsd(c.getValue()) }),
+      col.accessor("projected", {
+        header: "Forecast",
+        meta: { numeric: true, className: "hidden 2xl:table-cell" },
+        cell: (c) => formatUsd(c.getValue()),
+      }),
       col.accessor("limit", {
         header: "Limit",
         meta: { numeric: true },
@@ -68,7 +88,7 @@ export function ToolsTable({ rows = [], loading, error, onEdit }: Props) {
           return (
             <div className="w-28">
               <ProgressMeter value={r.utilization} tone={tone} label={`${r.name} utilization`} />
-              <p className="mt-1 text-xs tabular-nums text-ink-2">{formatPct(r.utilization)} used</p>
+              <p className="text-ink-2 mt-1 text-xs tabular-nums">{formatPct(r.utilization)} used</p>
             </div>
           );
         },
@@ -81,20 +101,18 @@ export function ToolsTable({ rows = [], loading, error, onEdit }: Props) {
           const r = c.row.original;
           const busy = isPending && variables?.id === r.id;
           return (
-            <div className="flex justify-end gap-1.5">
-              <Button size="sm" onClick={() => onEdit(r)}>Limit</Button>
-              {r.sanction !== "approved" && (
-                <Button size="sm" variant="primary" disabled={busy} onClick={() => setSanction({ id: r.id, sanction: "approved" })}>Approve</Button>
-              )}
-              {r.sanction !== "unsanctioned" && (
-                <Button size="sm" variant="danger" disabled={busy} onClick={() => setSanction({ id: r.id, sanction: "unsanctioned" })}>Block</Button>
-              )}
-            </div>
+            <RowActions
+              tool={r}
+              busy={busy}
+              onEdit={() => onEdit(r)}
+              onApprove={() => setSanction({ id: r.id, name: r.name, sanction: "approved" })}
+              onBlock={() => setSanction({ id: r.id, name: r.name, sanction: "unsanctioned" })}
+            />
           );
         },
       }),
     ],
-    [isPending, variables, onEdit, setSanction],
+    [isPending, variables, onEdit, setSanction, filters.period],
   );
 
   const table = useReactTable({
@@ -111,39 +129,65 @@ export function ToolsTable({ rows = [], loading, error, onEdit }: Props) {
   });
 
   return (
-    <Card className="p-5">
+    <Card className="p-5" role="region" aria-labelledby="tools-heading">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold">All AI tools</h2>
-          <p className="mt-0.5 text-xs text-ink-2">Approve or block a tool and every chart above updates.</p>
+          <h2 id="tools-heading" className="text-[15px] leading-snug font-semibold tracking-tight">
+            All AI tools
+          </h2>
+          <p className="text-ink-2 mt-0.5 text-xs">Approve or block a tool and every chart above updates.</p>
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor="tool-search" className="sr-only">Search tools</label>
+          <label htmlFor="tool-search" className="sr-only">
+            Search tools
+          </label>
           <Input id="tool-search" placeholder="Search tools…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-52" />
-          <Button onClick={() => downloadCsv(table.getRowModel().rows.map((r) => r.original))} disabled={rows.length === 0}>
+          <Button
+            onClick={() =>
+              downloadCsv(
+                table.getRowModel().rows.map((r) => r.original),
+                filters.period,
+              )
+            }
+            disabled={rows.length === 0}
+          >
             <Download className="size-4" aria-hidden /> Export CSV
           </Button>
         </div>
       </header>
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="border-grid mt-4 max-h-[36rem] overflow-auto rounded-md border">
         {loading ? (
           <Skeleton className="h-64 w-full" />
         ) : error ? (
-          <p role="alert" className="py-10 text-center text-sm text-critical-text">Couldn&apos;t load tools: {error.message}</p>
+          <p role="alert" className="text-critical-text py-10 text-center text-sm">
+            Couldn&apos;t load tools: {error.message}
+          </p>
         ) : (
           <table className="w-full min-w-[56rem] text-sm">
             <thead>
               {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id} className="border-b border-grid text-left text-xs text-ink-2">
+                <tr key={hg.id} className="text-ink-2 text-left text-xs">
                   {hg.headers.map((h) => {
-                    const numeric = (h.column.columnDef.meta as { numeric?: boolean } | undefined)?.numeric;
+                    const meta = h.column.columnDef.meta as ColMeta | undefined;
                     const sorted = h.column.getIsSorted();
                     const Icon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
                     return (
-                      <th key={h.id} className={`px-2 py-2 font-medium ${numeric ? "text-right" : ""}`} aria-sort={sorted ? (sorted === "asc" ? "ascending" : "descending") : "none"}>
+                      <th
+                        key={h.id}
+                        className={cn(
+                          "border-grid bg-surface sticky top-0 z-10 border-b px-3 py-2.5 font-medium",
+                          meta?.numeric && "text-right",
+                          meta?.className,
+                        )}
+                        aria-sort={sorted ? (sorted === "asc" ? "ascending" : "descending") : "none"}
+                      >
                         {h.column.getCanSort() ? (
-                          <button type="button" onClick={h.column.getToggleSortingHandler()} className="inline-flex items-center gap-1 hover:text-ink cursor-pointer">
+                          <button
+                            type="button"
+                            onClick={h.column.getToggleSortingHandler()}
+                            className="hover:text-ink inline-flex cursor-pointer items-center gap-1"
+                          >
                             {flexRender(h.column.columnDef.header, h.getContext())}
                             <Icon className={`size-3 ${sorted ? "text-ink" : "text-muted"}`} aria-hidden />
                           </button>
@@ -158,11 +202,14 @@ export function ToolsTable({ rows = [], loading, error, onEdit }: Props) {
             </thead>
             <tbody>
               {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-grid last:border-0 hover:bg-wash">
+                <tr key={row.id} className="border-grid hover:bg-wash border-b last:border-0">
                   {row.getVisibleCells().map((cell) => {
-                    const numeric = (cell.column.columnDef.meta as { numeric?: boolean } | undefined)?.numeric;
+                    const meta = cell.column.columnDef.meta as ColMeta | undefined;
                     return (
-                      <td key={cell.id} className={`px-2 py-2.5 align-middle ${numeric ? "text-right tabular-nums" : ""}`}>
+                      <td
+                        key={cell.id}
+                        className={cn("px-3 py-2.5 align-middle", meta?.numeric && "text-right tabular-nums", meta?.className)}
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     );
@@ -170,7 +217,11 @@ export function ToolsTable({ rows = [], loading, error, onEdit }: Props) {
                 </tr>
               ))}
               {table.getRowModel().rows.length === 0 && (
-                <tr><td colSpan={columns.length} className="py-10 text-center text-sm text-muted">No tools match.</td></tr>
+                <tr>
+                  <td colSpan={columns.length} className="text-muted py-10 text-center text-sm">
+                    No tools match.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -180,10 +231,32 @@ export function ToolsTable({ rows = [], loading, error, onEdit }: Props) {
   );
 }
 
-function downloadCsv(rows: ToolRow[]) {
-  const head = ["Tool", "Vendor", "Category", "Approval", "Active users", "Spend MTD", "Forecast", "Limit", "Status"];
+function downloadCsv(rows: ToolRow[], period: string) {
+  const head = [
+    "Tool",
+    "Vendor",
+    "Category",
+    "Approval",
+    "Active users",
+    `Spend last ${period}d`,
+    "Spend MTD",
+    "Forecast",
+    "Limit",
+    "Status",
+  ];
   const lines = rows.map((r) =>
-    [r.name, r.vendor, r.category, r.sanction, r.activeUsers, r.spendMtd.toFixed(2), r.projected.toFixed(2), r.limit ?? "", r.limitStatus]
+    [
+      r.name,
+      r.vendor,
+      r.category,
+      r.sanction,
+      r.activeUsers,
+      r.spendWindow.toFixed(2),
+      r.spendMtd.toFixed(2),
+      r.projected.toFixed(2),
+      r.limit ?? "",
+      r.limitStatus,
+    ]
       .map((v) => `"${String(v).replaceAll('"', '""')}"`)
       .join(","),
   );

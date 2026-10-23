@@ -10,7 +10,7 @@ export function ProgressMeter({ value, tone = "ok", label }: { value: number; to
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)}
-      className="h-1.5 w-full overflow-hidden rounded-full bg-wash"
+      className="bg-wash h-1.5 w-full overflow-hidden rounded-full"
     >
       <div className={cn("h-full rounded-full", color)} style={{ width: `${Math.min(100, value * 100)}%` }} />
     </div>

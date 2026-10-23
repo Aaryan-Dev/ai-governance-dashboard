@@ -50,8 +50,50 @@ describe("services", () => {
     for (const d of getShadowMatrix(filters).rows) {
       const cells = Object.values(d.cells);
       expect(Math.max(0, ...cells)).toBeLessThanOrEqual(d.headcount);
-      expect(d.shadowUsers).toBeLessThanOrEqual(Math.min(d.headcount, cells.reduce((s, n) => s + n, 0)));
+      expect(d.shadowUsers).toBeLessThanOrEqual(
+        Math.min(
+          d.headcount,
+          cells.reduce((s, n) => s + n, 0),
+        ),
+      );
       expect(d.shadowUsers).toBeGreaterThanOrEqual(Math.max(0, ...cells));
     }
+  });
+
+  describe("time range", () => {
+    const at = (period: "30" | "90" | "180") => filtersSchema.parse({ period });
+
+    it("rolling spend grows with the window and the delta is only offered when a prior window exists", () => {
+      const [a, b, c] = (["30", "90", "180"] as const).map((p) => getOverview(at(p)));
+      expect(a.spendWindow).toBeLessThan(b.spendWindow);
+      expect(b.spendWindow).toBeLessThan(c.spendWindow);
+      expect(a.windowDeltaPct).not.toBeNull();
+      expect(b.windowDeltaPct).not.toBeNull();
+      expect(c.windowDeltaPct).toBeNull();
+    });
+
+    it("window spend equals the sum of per-tool window spend", () => {
+      for (const p of ["30", "90", "180"] as const) {
+        const sum = getToolRows(at(p)).reduce((s, r) => s + r.spendWindow, 0);
+        expect(Math.abs(getOverview(at(p)).spendWindow - sum)).toBeLessThan(1);
+      }
+    });
+
+    it("active users and shadow users never shrink as the window widens", () => {
+      const users = (["30", "90", "180"] as const).map((p) => getOverview(at(p)).activeUsers);
+      expect(users[0]).toBeLessThanOrEqual(users[1]);
+      expect(users[1]).toBeLessThanOrEqual(users[2]);
+      const shadow = (["30", "180"] as const).map((p) => getShadowMatrix(at(p)).rows.reduce((s, r) => s + r.shadowUsers, 0));
+      expect(shadow[0]).toBeLessThan(shadow[1]);
+    });
+
+    it("the trend spans more months for wider windows", () => {
+      expect((["30", "90", "180"] as const).map((p) => getTrend(at(p)).length)).toEqual([3, 4, 6]);
+    });
+
+    it("month-based limit status does not depend on the window", () => {
+      const status = (p: "30" | "180") => getToolRows(at(p)).map((r) => `${r.id}:${r.limitStatus}`);
+      expect(status("30")).toEqual(status("180"));
+    });
   });
 });

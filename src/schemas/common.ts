@@ -4,15 +4,7 @@ export const SANCTIONS = ["approved", "under_review", "unsanctioned"] as const;
 export const sanctionSchema = z.enum(SANCTIONS);
 export type Sanction = z.infer<typeof sanctionSchema>;
 
-export const CATEGORIES = [
-  "Assistant",
-  "Platform / API",
-  "Coding",
-  "Productivity",
-  "Writing",
-  "Image & Media",
-  "Meetings",
-] as const;
+export const CATEGORIES = ["Assistant", "Platform / API", "Coding", "Productivity", "Writing", "Image & Media", "Meetings"] as const;
 export const categorySchema = z.enum(CATEGORIES);
 export type Category = z.infer<typeof categorySchema>;
 

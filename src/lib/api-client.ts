@@ -2,7 +2,10 @@ import type { z } from "zod";
 import type { Filters } from "@/schemas";
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
     super(message);
   }
 }

@@ -12,7 +12,7 @@ export function TrendDelta({ value, invert = false, label }: { value: number | n
     <span className={cn("inline-flex items-center gap-0.5 text-xs font-medium", bad ? "text-critical-text" : "text-good-text")}>
       <Icon className="size-3.5" aria-hidden />
       {formatSigned(value, 1)}
-      {label && <span className="ml-1 font-normal text-muted">{label}</span>}
+      {label && <span className="text-muted ml-1 font-normal">{label}</span>}
     </span>
   );
 }

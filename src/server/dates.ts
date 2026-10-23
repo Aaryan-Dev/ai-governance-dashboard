@@ -14,6 +14,5 @@ export const prevMonthKey = (key: string, back = 1) => {
   const d = new Date(Date.UTC(y, m - 1 - back, 1));
   return toIso(d).slice(0, 7);
 };
-export const monthLabel = (key: string) =>
-  parseIso(`${key}-01`).toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+export const monthLabel = (key: string) => parseIso(`${key}-01`).toLocaleString("en-US", { month: "short", timeZone: "UTC" });
 export const today = () => toIso(new Date());

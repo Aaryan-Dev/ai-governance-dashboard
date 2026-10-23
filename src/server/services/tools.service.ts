@@ -28,9 +28,12 @@ export function getAllToolRows(periodDays = 30): ToolRow[] {
   const dom = dayOfMonth(dataset.asOf);
   const dim = daysInMonth(dataset.asOf);
 
+  const windowStart = addDays(dataset.asOf, -periodDays);
+  const inWindow = new Map<string, number>();
   const mtd = new Map<string, number>();
   const prevTotal = new Map<string, number>();
   for (const e of dataset.events) {
+    if (e.date > windowStart) inWindow.set(e.toolId, (inWindow.get(e.toolId) ?? 0) + e.cost);
     const mk = monthKey(e.date);
     if (mk === cur) mtd.set(e.toolId, (mtd.get(e.toolId) ?? 0) + e.cost);
     else if (mk === prev) prevTotal.set(e.toolId, (prevTotal.get(e.toolId) ?? 0) + e.cost);
@@ -60,6 +63,7 @@ export function getAllToolRows(periodDays = 30): ToolRow[] {
       spendMtd,
       projected,
       spendPrev: round2(prevTotal.get(t.id) ?? 0),
+      spendWindow: round2(inWindow.get(t.id) ?? 0),
       utilization: limit ? spendMtd / limit : null,
       projectedUtilization: limit ? projected / limit : null,
       limitStatus: limitStatusOf(limit, spendMtd, projected),
@@ -72,8 +76,7 @@ export function getAllToolRows(periodDays = 30): ToolRow[] {
 export function getToolRows(filters: Filters): ToolRow[] {
   return getAllToolRows(Number(filters.period)).filter(
     (r) =>
-      (filters.category === "all" || r.category === filters.category) &&
-      (filters.sanction === "all" || r.sanction === filters.sanction),
+      (filters.category === "all" || r.category === filters.category) && (filters.sanction === "all" || r.sanction === filters.sanction),
   );
 }
 

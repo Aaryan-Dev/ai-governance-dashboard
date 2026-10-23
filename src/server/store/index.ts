@@ -28,10 +28,7 @@ function init(): Store {
     limits: new Map(Object.entries(dataset.initialLimits)),
     budget: dataset.initialBudget,
     syncs: new Map(
-      CONNECTORS.map((c, i) => [
-        c.id,
-        { status: "connected", lastSync: new Date(now - (i + 1) * 17 * 60_000).toISOString(), records: 0 },
-      ]),
+      CONNECTORS.map((c, i) => [c.id, { status: "connected", lastSync: new Date(now - (i + 1) * 17 * 60_000).toISOString(), records: 0 }]),
     ),
   };
 }

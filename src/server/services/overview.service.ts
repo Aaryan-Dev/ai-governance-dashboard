@@ -1,5 +1,6 @@
 import type { Alert, Filters, Overview, ToolRow } from "@/schemas";
-import { dayOfMonth, daysInMonth, monthKey, prevMonthKey } from "../dates";
+import { addDays, dayOfMonth, daysInMonth } from "../dates";
+import { WINDOW_DAYS } from "../seed/generate";
 import { getStore } from "../store";
 import { budgetFor } from "./spend.service";
 import { activeAdoptions, getToolRows, isApproved } from "./tools.service";
@@ -52,14 +53,18 @@ export function getOverview(filters: Filters): Overview {
   const { dataset } = getStore();
   const rows = getToolRows(filters);
   const ids = new Set(rows.map((r) => r.id));
-  const cur = monthKey(dataset.asOf);
-  const prev = prevMonthKey(cur);
   const dom = dayOfMonth(dataset.asOf);
+  const days = Number(filters.period);
 
-  let prevSamePoint = 0;
+  // Rolling window vs. the window immediately before it. Only comparable while the prior window fits in the data.
+  const windowStart = addDays(dataset.asOf, -days);
+  const priorStart = addDays(dataset.asOf, -2 * days);
+  const hasPrior = 2 * days <= WINDOW_DAYS;
+  let prior = 0;
   for (const e of dataset.events) {
-    if (ids.has(e.toolId) && monthKey(e.date) === prev && dayOfMonth(e.date) <= dom) prevSamePoint += e.cost;
+    if (ids.has(e.toolId) && e.date > priorStart && e.date <= windowStart) prior += e.cost;
   }
+  const spendWindow = rows.reduce((s, r) => s + r.spendWindow, 0);
 
   const spendMtd = rows.reduce((s, r) => s + r.spendMtd, 0);
   const projected = rows.reduce((s, r) => s + r.projected, 0);
@@ -74,7 +79,9 @@ export function getOverview(filters: Filters): Overview {
     spendMtd: Math.round(spendMtd),
     projected: Math.round(projected),
     budget,
-    momDeltaPct: prevSamePoint > 0 ? (spendMtd - prevSamePoint) / prevSamePoint : null,
+    periodDays: days,
+    spendWindow: Math.round(spendWindow),
+    windowDeltaPct: hasPrior && prior > 0 ? (spendWindow - prior) / prior : null,
     activeUsers: users.size,
     employees: dataset.employees,
     toolsTracked: rows.length,

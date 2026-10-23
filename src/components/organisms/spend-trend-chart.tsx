@@ -3,6 +3,7 @@
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartCard } from "@/components/molecules/chart-card";
 import { ChartLegend } from "@/components/molecules/chart-legend";
+import { DataTable, type DataColumn } from "@/components/molecules/data-table";
 import { CHART_RATIONALE } from "@/lib/chart-rationale";
 import { formatUsd, formatUsdCompact } from "@/lib/format";
 import type { TrendPoint } from "@/schemas";
@@ -15,6 +16,20 @@ interface Props {
 }
 
 type Datum = TrendPoint & { axisLabel: string; forecastRest: number };
+
+const TABLE_COLUMNS: DataColumn<Datum>[] = [
+  { key: "month", header: "Month", cell: (d) => d.axisLabel },
+  { key: "approved", header: "Approved tools", numeric: true, cell: (d) => formatUsd(d.approved) },
+  { key: "unapproved", header: "Unapproved tools", numeric: true, cell: (d) => formatUsd(d.unapproved) },
+  { key: "total", header: "Total", numeric: true, cell: (d) => formatUsd(d.total) },
+  {
+    key: "forecast",
+    header: "Forecast month end",
+    numeric: true,
+    cell: (d) => (d.partial && d.projectedTotal !== null ? formatUsd(d.projectedTotal) : "—"),
+  },
+  { key: "budget", header: "Budget", numeric: true, cell: (d) => formatUsd(d.budget) },
+];
 
 const AXIS = { fontSize: 11, fill: "var(--muted)" } as const;
 
@@ -42,11 +57,19 @@ export function SpendTrendChart({ points = [], loading, error }: Props) {
   return (
     <ChartCard
       title="Monthly spend vs. budget"
-      subtitle="Last 6 months, split by approval status. The current month shows the forecast for the rest of the month."
+      subtitle={`USD per month, last ${points.length} months (time range), split by approval status. The current month adds the forecast for the rest of the month.`}
       rationale={CHART_RATIONALE.trend}
       loading={loading}
       error={error}
       empty={points.length === 0}
+      table={
+        <DataTable
+          caption="Monthly AI spend by approval status against budget"
+          columns={TABLE_COLUMNS}
+          rows={data}
+          rowKey={(d) => d.month}
+        />
+      }
       legend={
         <ChartLegend
           items={[
@@ -58,17 +81,52 @@ export function SpendTrendChart({ points = [], loading, error }: Props) {
         />
       }
     >
-      <div className="h-72 w-full" role="img" aria-label="Stacked column chart of monthly AI spend for approved and unapproved tools against budget">
+      <div
+        className="h-72 w-full"
+        role="img"
+        aria-label="Stacked column chart of monthly AI spend for approved and unapproved tools against budget"
+      >
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }} barCategoryGap="28%">
             <CartesianGrid vertical={false} stroke="var(--grid)" />
             <XAxis dataKey="axisLabel" tick={AXIS} tickLine={false} axisLine={{ stroke: "var(--axis)" }} />
             <YAxis tick={AXIS} tickLine={false} axisLine={false} width={48} tickFormatter={formatUsdCompact} />
             <Tooltip content={<TrendTooltip />} cursor={{ fill: "var(--wash)" }} />
-            <Bar dataKey="approved" stackId="spend" fill="var(--series-1)" stroke="var(--surface)" strokeWidth={2} isAnimationActive={false} />
-            <Bar dataKey="unapproved" stackId="spend" fill="var(--series-2)" stroke="var(--surface)" strokeWidth={2} isAnimationActive={false} />
-            <Bar dataKey="forecastRest" stackId="spend" fill="var(--axis)" fillOpacity={0.6} stroke="var(--surface)" strokeWidth={2} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-            <Line type="linear" dataKey="budget" stroke="var(--ink)" strokeWidth={2} dot={false} activeDot={false} isAnimationActive={false} />
+            <Bar
+              dataKey="approved"
+              stackId="spend"
+              fill="var(--series-1)"
+              stroke="var(--surface)"
+              strokeWidth={2}
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="unapproved"
+              stackId="spend"
+              fill="var(--series-2)"
+              stroke="var(--surface)"
+              strokeWidth={2}
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="forecastRest"
+              stackId="spend"
+              fill="var(--axis)"
+              fillOpacity={0.6}
+              stroke="var(--surface)"
+              strokeWidth={2}
+              radius={[4, 4, 0, 0]}
+              isAnimationActive={false}
+            />
+            <Line
+              type="linear"
+              dataKey="budget"
+              stroke="var(--ink)"
+              strokeWidth={2}
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

@@ -10,7 +10,7 @@ const CONFIG: Record<Sanction, { label: string; dot: string }> = {
 export function SanctionBadge({ sanction, className }: { sanction: Sanction; className?: string }) {
   const { label, dot } = CONFIG[sanction];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 text-xs text-ink-2 whitespace-nowrap", className)}>
+    <span className={cn("text-ink-2 inline-flex items-center gap-1.5 text-xs whitespace-nowrap", className)}>
       <span className={cn("size-2 rounded-full", dot)} aria-hidden />
       {label}
     </span>

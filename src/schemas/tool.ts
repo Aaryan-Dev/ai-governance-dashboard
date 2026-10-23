@@ -12,6 +12,8 @@ export const toolRowSchema = z.object({
   spendMtd: z.number(),
   projected: z.number(),
   spendPrev: z.number(),
+  /** Spend over the selected rolling window (last N days). */
+  spendWindow: z.number(),
   utilization: z.number().nullable(),
   projectedUtilization: z.number().nullable(),
   limitStatus: limitStatusSchema,

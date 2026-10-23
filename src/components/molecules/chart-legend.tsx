@@ -8,7 +8,7 @@ export interface LegendItem {
 
 export function ChartLegend({ items }: { items: LegendItem[] }) {
   return (
-    <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-2">
+    <ul className="text-ink-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
       {items.map(({ label, color, kind = "swatch" }) => (
         <li key={label} className="flex items-center gap-1.5">
           <span
