@@ -1,0 +1,12 @@
+node_modules
+.next
+.next-e2e
+.git
+.github
+tests
+playwright-report
+test-results
+*.md
+Dockerfile
+.dockerignore
+.gcloudignore
